@@ -56,12 +56,17 @@ model User {
   passwordResetTokenExp DateTime?
   role                  UserRole  @default(TESTER)
   
+  // Multi-tenancy: Current active organization
+  currentOrganizationId String?
+  
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
   // Relations
   accounts              Account[]
   sessions              Session[]
+  organizationMemberships OrganizationMember[]
+  currentOrganization   Organization? @relation("CurrentOrganization", fields: [currentOrganizationId], references: [id], onDelete: SetNull)
   projectMemberships    ProjectMember[]
   assignedTests         TestCaseInstance[]
   createdArtifacts      TestArtifact[]
@@ -71,6 +76,7 @@ model User {
   notifications         NotificationLog[]
   
   @@index([email])
+  @@index([currentOrganizationId])
 }
 
 model VerificationToken {
@@ -89,11 +95,68 @@ enum UserRole {
 }
 
 // ============================================================================
+// ORGANIZATIONS (Multi-Tenancy)
+// ============================================================================
+
+model Organization {
+  id                  String              @id @default(cuid())
+  name                String
+  slug                String              @unique
+  description         String?             @db.Text
+  
+  // Subscription/Plan info (for SaaS)
+  plan                String              @default("free") // free, pro, enterprise
+  planLimits          Json?               // Limits: projects, users, storage, etc.
+  
+  // Branding
+  logo                String?
+  primaryColor        String?
+  
+  // Settings
+  settings            Json?               // Organization-wide settings
+  
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  // Relations
+  members             OrganizationMember[]
+  currentUsers        User[]              @relation("CurrentOrganization")
+  projects            Project[]
+  
+  @@index([slug])
+}
+
+model OrganizationMember {
+  id              String            @id @default(cuid())
+  organizationId  String
+  userId          String
+  role            OrganizationRole  @default(MEMBER)
+  
+  invitedAt       DateTime          @default(now())
+  joinedAt        DateTime?
+  
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+enum OrganizationRole {
+  OWNER       // Full control of organization
+  ADMIN       // Can manage members and settings
+  MEMBER      // Can create projects and participate
+  GUEST       // Read-only access
+}
+
+// ============================================================================
 // PROJECTS & FEATURES
 // ============================================================================
 
 model Project {
   id                  String              @id @default(cuid())
+  organizationId      String
   name                String
   description         String?             @db.Text
   slug                String              @unique
@@ -122,6 +185,7 @@ model Project {
   archivedAt          DateTime?
 
   // Relations
+  organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   members             ProjectMember[]
   features            Feature[]
   environments        Environment[]
@@ -134,8 +198,10 @@ model Project {
   notificationRules   NotificationRule[]
   qualityGates        QualityGate[]
   
+  @@index([organizationId])
   @@index([slug])
   @@index([githubInstallationId])
+  @@index([organizationId, archivedAt])
 }
 
 model ProjectMember {

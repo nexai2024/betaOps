@@ -1,9 +1,9 @@
 // AI Provider Factory
 
 import { AIProvider } from "./types";
-import { OpenAIProvider, AnthropicProvider, LocalProvider } from "./providers";
+import { OpenAIProvider, AnthropicProvider, GeminiProvider, LocalProvider } from "./providers";
 
-export type ProviderType = "openai" | "anthropic" | "local";
+export type ProviderType = "openai" | "anthropic" | "gemini" | "local";
 
 export interface ProviderConfig {
   type: ProviderType;
@@ -26,6 +26,17 @@ export class AIProviderFactory {
     let provider: AIProvider;
     
     switch (type) {
+      case "gemini":
+        if (!apiKey) {
+          throw new Error("Google Gemini API key is required");
+        }
+        provider = new GeminiProvider(
+          apiKey,
+          defaultModel || "gemini-1.5-pro",
+          baseURL
+        );
+        break;
+        
       case "openai":
         if (!apiKey) {
           throw new Error("OpenAI API key is required");
@@ -77,7 +88,7 @@ export class AIProviderFactory {
 
 // Helper to get default provider from environment
 export function getDefaultProvider(): AIProvider {
-  const providerType = (process.env.AI_PROVIDER || "openai") as ProviderType;
+  const providerType = (process.env.AI_PROVIDER || "gemini") as ProviderType;
   
   const config: ProviderConfig = {
     type: providerType,

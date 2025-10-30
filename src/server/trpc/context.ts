@@ -24,11 +24,13 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 type CreateContextOptions = {
   session: Session | null;
+  organizationId: string | null;
 };
 
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
+    organizationId: opts.organizationId,
     prisma,
   };
 };
@@ -39,8 +41,19 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   // Get session from NextAuth
   const session = await getServerSession(req, res, authOptions);
   
+  // Get current organization from user
+  let organizationId: string | null = null;
+  if (session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { currentOrganizationId: true },
+    });
+    organizationId = user?.currentOrganizationId || null;
+  }
+  
   return createInnerTRPCContext({
     session,
+    organizationId,
   });
 };
 

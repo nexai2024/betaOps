@@ -1,6 +1,6 @@
 // Prisma Seed Script for BetaOps
 
-import { PrismaClient, RegulatoryRegime, RiskLevel, MemberRole, TestArtifactType, ArtifactSource, ArtifactStatus, TestCycleStatus, TestCaseStatus } from "@prisma/client";
+import { PrismaClient, RegulatoryRegime, RiskLevel, MemberRole, OrganizationRole, TestArtifactType, ArtifactSource, ArtifactStatus, TestCycleStatus, TestCaseStatus } from "@prisma/client";
 import { hash } from "bcrypt";
 
 const prisma = new PrismaClient();
@@ -22,6 +22,8 @@ async function main() {
   await prisma.environment.deleteMany();
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
+  await prisma.organizationMember.deleteMany();
+  await prisma.organization.deleteMany();
   await prisma.session.deleteMany();
   await prisma.account.deleteMany();
   await prisma.user.deleteMany();
@@ -74,11 +76,97 @@ async function main() {
   console.log("✅ Created users");
   
   // ============================================================================
+  // ORGANIZATIONS
+  // ============================================================================
+  
+  // Organization 1: Acme Corp (for e-commerce projects)
+  const acmeOrg = await prisma.organization.create({
+    data: {
+      name: "Acme Corp",
+      slug: "acme-corp",
+      description: "Building the future of e-commerce",
+      plan: "pro",
+      members: {
+        create: [
+          {
+            userId: owner.id,
+            role: OrganizationRole.OWNER,
+            joinedAt: new Date(),
+          },
+          {
+            userId: maintainer.id,
+            role: OrganizationRole.ADMIN,
+            joinedAt: new Date(),
+          },
+          {
+            userId: tester1.id,
+            role: OrganizationRole.MEMBER,
+            joinedAt: new Date(),
+          },
+        ],
+      },
+    },
+  });
+  
+  // Organization 2: HealthTech Solutions (for medical projects)
+  const healthTechOrg = await prisma.organization.create({
+    data: {
+      name: "HealthTech Solutions",
+      slug: "healthtech-solutions",
+      description: "HIPAA-compliant healthcare technology solutions",
+      plan: "enterprise",
+      members: {
+        create: [
+          {
+            userId: owner.id,
+            role: OrganizationRole.OWNER,
+            joinedAt: new Date(),
+          },
+          {
+            userId: maintainer.id,
+            role: OrganizationRole.ADMIN,
+            joinedAt: new Date(),
+          },
+          {
+            userId: tester2.id,
+            role: OrganizationRole.MEMBER,
+            joinedAt: new Date(),
+          },
+        ],
+      },
+    },
+  });
+  
+  // Set current organization for users
+  await prisma.user.update({
+    where: { id: owner.id },
+    data: { currentOrganizationId: acmeOrg.id },
+  });
+  
+  await prisma.user.update({
+    where: { id: maintainer.id },
+    data: { currentOrganizationId: acmeOrg.id },
+  });
+  
+  await prisma.user.update({
+    where: { id: tester1.id },
+    data: { currentOrganizationId: acmeOrg.id },
+  });
+  
+  await prisma.user.update({
+    where: { id: tester2.id },
+    data: { currentOrganizationId: healthTechOrg.id },
+  });
+  
+  console.log("✅ Created organizations");
+  
+  // ============================================================================
   // PROJECT 1: Simple E-commerce SPA
   // ============================================================================
   
   const ecommerceProject = await prisma.project.create({
     data: {
+      organizationId: acmeOrg.id,
       name: "ShopFast - E-commerce Platform",
       slug: "shopfast-ecommerce",
       description: "A modern e-commerce single-page application built with React and Next.js. Features include product browsing, shopping cart, checkout, and user accounts.",
@@ -332,6 +420,7 @@ async function main() {
   
   const medicalProject = await prisma.project.create({
     data: {
+      organizationId: healthTechOrg.id,
       name: "MedConnect - Patient Portal",
       slug: "medconnect-portal",
       description: "HIPAA-compliant patient portal for healthcare providers. Enables secure messaging, appointment scheduling, and medical record access.",
@@ -637,9 +726,12 @@ async function main() {
 
 📊 Summary:
   - Users: 4 (1 owner, 1 maintainer, 2 testers)
+  - Organizations: 2
+    • Acme Corp (E-commerce, Pro plan)
+    • HealthTech Solutions (Healthcare, Enterprise plan)
   - Projects: 2
-    • ShopFast E-commerce (Simple SPA)
-    • MedConnect Patient Portal (HIPAA-compliant)
+    • ShopFast E-commerce (Simple SPA) - Acme Corp
+    • MedConnect Patient Portal (HIPAA-compliant) - HealthTech Solutions
   - Features: 10 total
   - Test Artifacts: 6 total
   - Test Cycles: 2 (1 in-progress, 1 completed)

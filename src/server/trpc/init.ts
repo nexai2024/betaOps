@@ -24,15 +24,23 @@ const t = initTRPC.context<Context>().create({
 // Middleware
 // ============================================================================
 
-// Auth middleware - requires user to be authenticated
+// Auth middleware - requires user to be authenticated and have an organization
 const isAuth = t.middleware(({ ctx, next }) => {
   if (!ctx.session || !ctx.session.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   
+  if (!ctx.organizationId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "No organization selected. Please select or create an organization.",
+    });
+  }
+  
   return next({
     ctx: {
       session: { ...ctx.session, user: ctx.session.user },
+      organizationId: ctx.organizationId,
     },
   });
 });

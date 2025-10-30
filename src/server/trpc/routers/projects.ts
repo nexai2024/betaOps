@@ -6,10 +6,11 @@ import { TRPCError } from "@trpc/server";
 import { MemberRole, RegulatoryRegime, RiskLevel } from "@prisma/client";
 
 export const projectsRouter = router({
-  // List all projects user has access to
+  // List all projects user has access to (in current organization)
   list: protectedProcedure.query(async ({ ctx }) => {
     const projects = await ctx.prisma.project.findMany({
       where: {
+        organizationId: ctx.organizationId,
         members: {
           some: {
             userId: ctx.session.user.id,
@@ -131,9 +132,10 @@ export const projectsRouter = router({
         });
       }
       
-      // Create project and add creator as owner
+      // Create project in current organization and add creator as owner
       const project = await ctx.prisma.project.create({
         data: {
+          organizationId: ctx.organizationId,
           name: input.name,
           description: input.description,
           slug: input.slug,

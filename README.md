@@ -17,7 +17,7 @@ BetaOps helps individual developers and small software shops manage AI-powered b
 - **Automatic test case creation** from code diffs, user stories, and project context
 - **Intelligent failure analysis** with root cause suggestions
 - **Weekly insights** highlighting risk hotspots and recommended test scope
-- **Pluggable AI providers**: OpenAI, Anthropic, or local models (Ollama)
+- **Powered by Google Gemini** (default) - Also supports OpenAI, Anthropic, or local models (Ollama)
 
 ### 🔗 Deep GitHub Integration
 - **GitHub App** for seamless repo connection
@@ -55,7 +55,8 @@ BetaOps helps individual developers and small software shops manage AI-powered b
 - **Node.js** 18+
 - **PostgreSQL** 14+
 - **GitHub Account** (for OAuth and GitHub App)
-- **AI Provider API Key** (OpenAI, Anthropic, or local setup)
+- **Google Gemini API Key** (free tier available at [Google AI Studio](https://makersuite.google.com/app/apikey))
+  - Alternative: OpenAI, Anthropic, or local models
 
 ### Installation
 
@@ -92,6 +93,8 @@ Visit `http://localhost:3000` and sign in with:
 - **[Architecture Overview](./BETAOPS_ARCHITECTURE.md)** - System design, data model, and technical decisions
 - **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment with Vercel, Railway, Fly.io, or Docker
 - **[Demo Script](./DEMO_SCRIPT.md)** - Complete walkthrough of all features
+- **[Multi-Tenancy Guide](./MULTI_TENANCY.md)** - Organization management and data isolation
+- **[Gemini Setup](./GEMINI_SETUP.md)** - Google Gemini AI configuration and best practices
 
 ---
 
@@ -121,14 +124,17 @@ Visit `http://localhost:3000` and sign in with:
 ## 🎯 Use Cases
 
 ### For Solo Developers
-- Auto-generate test cases from commits
-- Track testing progress on side projects
-- Simple setup, no team overhead
+- Auto-generate test cases from commits with Google Gemini
+- Track testing progress across multiple projects
+- Simple setup with free-tier AI included
+- Multi-organization support for managing multiple projects
 
 ### For Small Teams
-- Coordinate testing across team members
+- Multi-tenant organization management
+- Coordinate testing across team members and projects
 - GitHub issue integration keeps everything in sync
 - AI assists with test planning and failure analysis
+- Role-based access control (Owner, Admin, Member, Guest)
 
 ### For Regulated Industries
 - HIPAA, PCI, GDPR compliance support
