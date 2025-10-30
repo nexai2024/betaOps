@@ -1,0 +1,65 @@
+# Docker Compose for BetaOps Local Development
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: betaops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: betaops
+      POSTGRES_PASSWORD: betaops_dev_password
+      POSTGRES_DB: betaops
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U betaops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (optional, for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: betaops-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Prisma Studio (for database management)
+  prisma-studio:
+    image: node:18-alpine
+    container_name: betaops-prisma-studio
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: npx prisma studio --port 5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://betaops:betaops_dev_password@postgres:5432/betaops?schema=public
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: betaops-network
