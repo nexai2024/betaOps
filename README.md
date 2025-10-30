@@ -1,112 +1,262 @@
-Play Next.js is a free and **Open-source SaaS starter kit and boilerplate, designed and built for SaaS startups**, apps, businesses, and more. With its premium design and essential UI components and pages, it provides everything you need to kickstart a feature-rich SaaS website.
+# BetaOps
 
-[![Play Next.js](https://github.com/NextJSTemplates/play-nextjs/blob/main/nextjs-play.png)](https://play.nextjstemplates.com)
+> **AI-Assisted Beta Testing Platform for Modern Development Teams**
 
-## Free SaaS Boilerplate and Starter Kit for Next.js 🚀
+BetaOps helps individual developers and small software shops manage AI-powered beta testing across projects of any complexity—from simple SPAs to HIPAA-compliant, regulated systems.
 
-Play Next.js SaaS Boilerplate and Starter Kit is a free, open-source solution ideal for startups, SaaS companies, and more. It offers essential UI components, authentication and database integration, and Stripe integration. Its superior design and functionality make it a go-to choice for launching a feature-rich SaaS website efficiently.
-
-### [🚀 View Live Demo](https://play.nextjstemplates.com/)
-
-### [🔌 Documentation](https://nextjstemplates.com/docs)
-
-### All Essential Integrations - DB, Auth, Payment, MDX, and more ⚡
-
-Play Next.js SaaS Starter kit includes all the key integrations required to build a fully functional SaaS platform.
-
-- **PostgreSQL for Database**: Comes with PostgreSQL integration with Prisma which is a powerful and open-source relational database system ensures data integrity and reliability.
-
-- **NextAuth for Authentication**: Play Next.js utilizes NextAuth, a versatile solution that provides secure login and user management.
-
-- **MDX for Blogs**: MDX uniquely combines Markdown and JSX, Play Next.js comes with complete blogging solution to create and maintain blog using MDX.
-
-- **Stripe for Subscription Payments**: Stripe, a globally trusted payment processing platform, offers robust security features and smooth checkout experiences.
-
-These integrations work together to simplify development and enhance the user experience.
-
-### Essential SaaS Pages & Components and Styled Using Tailwind CSS 🎨
-
-This Next.js SaaS Boilerplate and Starter Kit is **styled using Tailwind CSS**, a highly flexible and customizable utility-first CSS framework. Leveraging the power of Tailwind, each component and page of this kit, including **login, signup, blog, about, and others, has been handcrafted to offer top-notch aesthetics** while maintaining peak usability.
-
-### Crafted Using [🎨 TailGrids Components](https://tailgrids.com)
-
-Play Next.js SaaS boilerplate, you can enjoy a professional-looking website that offers seamless operation, all while significantly reducing your web development time and effort.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-5-2D3748)](https://www.prisma.io/)
 
 ---
 
-### 🚀 Deploy Now
+## ✨ Features
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FNextJSTemplates%2Fplay-nextjs)
+### 🤖 AI-Powered Test Generation
+- **Automatic test case creation** from code diffs, user stories, and project context
+- **Intelligent failure analysis** with root cause suggestions
+- **Weekly insights** highlighting risk hotspots and recommended test scope
+- **Pluggable AI providers**: OpenAI, Anthropic, or local models (Ollama)
 
-[![Deploy with Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/NextJSTemplates/play-nextjs)
+### 🔗 Deep GitHub Integration
+- **GitHub App** for seamless repo connection
+- **Webhook automation**: Push events trigger suggested test cycles
+- **Issue sync**: Create issues from failed tests, bidirectional status updates
+- **PR checks**: Show test results directly on pull requests
 
-### Setup Instructions
+### 📊 Flexible Project Management
+- **Hierarchical feature modeling** with risk levels and tags
+- **Multiple test artifact types**: User stories, test cases, charters, acceptance criteria
+- **Test cycle management** with version tracking and commit linking
+- **Kanban execution board** with real-time status updates
 
-Follow these steps to set up and run this template on your local machine:
+### 🛡️ Compliance & Audit Ready
+- **Regulatory regime support**: HIPAA, PCI, GDPR, SOC2, FDA
+- **Electronic sign-offs** with cryptographic signatures
+- **Quality gates** to block releases on failing critical tests
+- **Audit bundle export**: Complete evidence packages for certifications
+- **Immutable audit trail** of all actions
+- **PII detection and redaction**
 
-1. Begin by downloading and extracting the template from **Next.js Templates**.
+### 👥 Team Collaboration
+- **Role-based access control**: Owner, Maintainer, Tester, External
+- **Test assignments** with environment tracking
+- **Evidence attachments**: Screenshots, HAR files, logs
+- **Notifications**: Email, Slack, Microsoft Teams
+- **Beta tester invites** with NDA acceptance tracking
 
-2. Once you've done that, navigate into the template directory using the **cd** command.
+---
 
-3. Install the necessary dependencies by running the following commands:
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 18+
+- **PostgreSQL** 14+
+- **GitHub Account** (for OAuth and GitHub App)
+- **AI Provider API Key** (OpenAI, Anthropic, or local setup)
+
+### Installation
 
 ```bash
-    npm install --legacy-peer-deps
+# Clone repository
+git clone https://github.com/your-org/betaops.git
+cd betaops
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Set up database
+npm run db:migrate
+
+# Seed sample data (optional)
+npm run db:seed
+
+# Start development server
+npm run dev
 ```
 
-**Note:** As of right now React 19 causes peer dependencies issues with some packages, so the `legacy-peer-deps` flag is required.
+Visit `http://localhost:3000` and sign in with:
+- **Email**: `alice@betaops.dev`
+- **Password**: `password123`
 
-4. Now you're ready to start the project on your local server. Use the following command to get it up and running:
+---
+
+## 📖 Documentation
+
+- **[Architecture Overview](./BETAOPS_ARCHITECTURE.md)** - System design, data model, and technical decisions
+- **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment with Vercel, Railway, Fly.io, or Docker
+- **[Demo Script](./DEMO_SCRIPT.md)** - Complete walkthrough of all features
+
+---
+
+## 🏗️ Tech Stack
+
+### Frontend
+- **Next.js 15** (App Router)
+- **TypeScript**
+- **TailwindCSS** + **shadcn/ui**
+- **React Query** (TanStack Query)
+- **tRPC** (type-safe API)
+
+### Backend
+- **Next.js API Routes**
+- **Prisma ORM**
+- **PostgreSQL**
+- **NextAuth** (GitHub + Email/Password)
+
+### Integrations
+- **GitHub App** (webhooks, issues, PRs)
+- **OpenAI** / Anthropic (AI generation)
+- **Sentry** (error tracking)
+- **Slack/Teams** (notifications)
+
+---
+
+## 🎯 Use Cases
+
+### For Solo Developers
+- Auto-generate test cases from commits
+- Track testing progress on side projects
+- Simple setup, no team overhead
+
+### For Small Teams
+- Coordinate testing across team members
+- GitHub issue integration keeps everything in sync
+- AI assists with test planning and failure analysis
+
+### For Regulated Industries
+- HIPAA, PCI, GDPR compliance support
+- Electronic sign-offs and audit trails
+- Quality gates prevent non-compliant releases
+- Evidence export for certifications
+
+---
+
+## 📊 Sample Projects (Seeded)
+
+### 1. ShopFast - E-commerce SPA
+- **Type**: Simple SPA (React/Next.js)
+- **Risk Level**: Medium
+- **Features**: Product catalog, cart, checkout, auth
+- **Test Cycle**: Sprint 12 in progress
+- **Demonstrates**: Basic testing workflow, AI generation, GitHub integration
+
+### 2. MedConnect - Patient Portal
+- **Type**: HIPAA-compliant healthcare platform
+- **Risk Level**: Critical
+- **Regulatory Regime**: HIPAA
+- **Features**: Patient auth (MFA), medical records, secure messaging
+- **Test Cycle**: Q1 2024 security audit (completed)
+- **Demonstrates**: Compliance mode, electronic sign-offs, audit export, quality gates
+
+---
+
+## 🔐 Security & Privacy
+
+- **Row-level security** via project membership
+- **Encrypted sensitive data** (tokens, PII)
+- **Audit logging** of all privileged actions
+- **Content moderation** and prompt injection guards
+- **Rate limiting** (100 req/min/user)
+- **OAuth scopes**: Minimal required permissions
+
+---
+
+## 🗺️ Roadmap
+
+### Phase 1 (Current)
+- [x] Core test management
+- [x] GitHub integration
+- [x] AI test generation
+- [x] Compliance mode
+- [x] Audit trails
+
+### Phase 2 (Q2 2024)
+- [ ] Browserstack/SauceLabs integration
+- [ ] Mobile app for testers
+- [ ] Advanced AI: defect deduplication with embeddings
+- [ ] Feature flag integration (LaunchDarkly)
+- [ ] Lighthouse CI for performance
+
+### Phase 3 (Q3 2024)
+- [ ] Visual regression testing
+- [ ] API contract testing
+- [ ] Load testing integration
+- [ ] Multi-tenant SaaS mode
+- [ ] White-label options
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+### Development Setup
 
 ```bash
-    npm run dev
+# Install dependencies
+npm install
+
+# Run tests
+npm run test
+
+# Type check
+npm run type-check
+
+# Lint
+npm run lint
+
+# Format
+npm run format
 ```
 
-This will launch the template on [localhost:3000](http://localhost:3000).
+### Submitting Changes
 
-Our comprehensive documentation includes all the guides you'll need for integrating various features.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### Deployment on PaaS
+---
 
-If your project is hosted on a GitHub repository, you can deploy it using free and user-friendly platforms like [Vercel](https://vercel.com/) or [Netlify](https://netlify.com/). Both provide generous free tiers for hosting Next.js projects.
+## 📄 License
 
-### License Information
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-Play is Free is completely free and open-source. Feel free to use it for both personal and commercial projects.
+---
 
-### Show Your Support
+## 🙏 Acknowledgments
 
-If you appreciate this project, please consider starring this repository. Your support encourages our team to continue creating more content like this and helps us to reach more users like you!
+- **Next.js Team** for the amazing framework
+- **Prisma** for type-safe database access
+- **shadcn/ui** for beautiful, accessible components
+- **tRPC** for end-to-end type safety
+- **OpenAI & Anthropic** for AI capabilities
 
-## Explore More Templates
+---
 
-For a wider range of options, feel free to browse our collection of [Next.js Templates, Boilerplates and Starter Kits](https://nextjstemplates.com/templates).
+## 📧 Contact & Support
 
-### Update Log
+- **Documentation**: [betaops.dev/docs](https://betaops.dev/docs)
+- **GitHub Issues**: [github.com/your-org/betaops/issues](https://github.com/your-org/betaops/issues)
+- **Discord**: [discord.gg/betaops](https://discord.gg/betaops)
+- **Email**: [support@betaops.dev](mailto:support@betaops.dev)
 
-**06 August 2025** - v2.2.1
+---
 
-- fix: [#21](https://github.com/NextJSTemplates/play-nextjs/issues/21) - Moved context providers to `/src/app/providers.tsx`
-- Removed initial loader
+## ⭐ Show Your Support
 
-**10 April 2025**
+If BetaOps helps you ship better software, give it a ⭐️ on GitHub!
 
-- Fix peer deps issue
-- Update Next.js for security patch
+---
 
-**29 Jan 2025**
+**Built with ❤️ by developers, for developers.**
 
-- Upgraded to Next.js 15
-- Using `Link` instead of `a` tag
-- Fixed all minor bugs
-
-**21 March 2024**
-
-- Upgraded to Next.js 14
-- Updated stripe integration
-- Fixed auth issues
-- Updated all the packages
-- Update ts config & fix all the issues
-- Update signin & signup page Design
-- Integrated Magic link signin
-- & Forgot password
+*Last Updated: 2025-10-30 | Version: 1.0.0*

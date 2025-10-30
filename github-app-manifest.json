@@ -1,0 +1,25 @@
+{
+  "name": "BetaOps",
+  "url": "https://betaops.dev",
+  "hook_attributes": {
+    "url": "https://your-domain.com/api/github/webhook"
+  },
+  "redirect_url": "https://your-domain.com/api/github/callback",
+  "callback_urls": [
+    "https://your-domain.com/api/auth/callback/github"
+  ],
+  "public": true,
+  "default_permissions": {
+    "contents": "read",
+    "issues": "write",
+    "pull_requests": "write",
+    "checks": "write",
+    "metadata": "read"
+  },
+  "default_events": [
+    "push",
+    "pull_request",
+    "issues"
+  ],
+  "description": "AI-assisted beta testing platform with GitHub integration"
+}

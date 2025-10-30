@@ -1,15 +1,19 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// BetaOps Prisma Schema
+// AI-Assisted Beta Testing Platform
 
 datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Only needed when using a cloud provider that doesn't support the creation of new databases, like Heroku. Learn more: https://pris.ly/d/migrate-shadow
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
+
+// ============================================================================
+// AUTH & USER MANAGEMENT (NextAuth)
+// ============================================================================
 
 model Account {
   id                String  @id @default(cuid())
@@ -28,6 +32,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -36,6 +41,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -47,8 +54,23 @@ model User {
   password              String?
   passwordResetToken    String?   @unique
   passwordResetTokenExp DateTime?
+  role                  UserRole  @default(TESTER)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
   accounts              Account[]
   sessions              Session[]
+  projectMemberships    ProjectMember[]
+  assignedTests         TestCaseInstance[]
+  createdArtifacts      TestArtifact[]
+  signOffs              SignOff[]
+  auditEvents           AuditEvent[]
+  betaTesterProfiles    BetaTester[]
+  notifications         NotificationLog[]
+  
+  @@index([email])
 }
 
 model VerificationToken {
@@ -57,4 +79,710 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum UserRole {
+  OWNER
+  MAINTAINER
+  TESTER
+  EXTERNAL
+}
+
+// ============================================================================
+// PROJECTS & FEATURES
+// ============================================================================
+
+model Project {
+  id                  String              @id @default(cuid())
+  name                String
+  description         String?             @db.Text
+  slug                String              @unique
+  
+  // Repository & Source Control
+  repositories        Json                @default("[]") // Array of {url, branch, primary}
+  
+  // Regulatory & Risk
+  regulatoryRegime    RegulatoryRegime?
+  riskLevel           RiskLevel           @default(MEDIUM)
+  
+  // Release metadata
+  releaseCadence      String?             // e.g., "weekly", "monthly"
+  
+  // Compliance configuration
+  complianceMode      Boolean             @default(false)
+  complianceConfig    Json?               // ComplianceConfig object
+  
+  // GitHub App installation
+  githubInstallationId String?            @unique
+  githubRepoOwner      String?
+  githubRepoName       String?
+  
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  archivedAt          DateTime?
+
+  // Relations
+  members             ProjectMember[]
+  features            Feature[]
+  environments        Environment[]
+  testArtifacts       TestArtifact[]
+  testPlans           TestPlan[]
+  testCycles          TestCycle[]
+  betaTesters         BetaTester[]
+  issueLinks          IssueLink[]
+  auditEvents         AuditEvent[]
+  notificationRules   NotificationRule[]
+  qualityGates        QualityGate[]
+  
+  @@index([slug])
+  @@index([githubInstallationId])
+}
+
+model ProjectMember {
+  id          String      @id @default(cuid())
+  projectId   String
+  userId      String
+  role        MemberRole  @default(TESTER)
+  invitedAt   DateTime    @default(now())
+  joinedAt    DateTime?
+  
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+enum MemberRole {
+  OWNER
+  MAINTAINER
+  TESTER
+}
+
+enum RegulatoryRegime {
+  HIPAA
+  PCI
+  GDPR
+  SOC2
+  FDA
+  NONE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Feature {
+  id              String    @id @default(cuid())
+  projectId       String
+  
+  name            String
+  description     String?   @db.Text
+  tags            Json      @default("[]") // Array of strings
+  
+  // Hierarchical structure
+  parentId        String?
+  order           Int       @default(0)
+  
+  // Metadata
+  isActive        Boolean   @default(true)
+  riskLevel       RiskLevel @default(MEDIUM)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent          Feature?  @relation("FeatureHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Feature[] @relation("FeatureHierarchy")
+  testArtifacts   TestArtifact[]
+  
+  @@index([projectId])
+  @@index([parentId])
+  @@index([projectId, isActive])
+}
+
+model Environment {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String   // e.g., "staging", "production"
+  url         String?
+  config      Json?    // Environment-specific config
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testCaseInstances TestCaseInstance[]
+  
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+// ============================================================================
+// TEST ARTIFACTS & TEMPLATES
+// ============================================================================
+
+model TestArtifact {
+  id              String              @id @default(cuid())
+  projectId       String
+  
+  type            TestArtifactType
+  title           String
+  content         String              @db.Text
+  
+  // Provenance
+  source          ArtifactSource      @default(MANUAL)
+  aiModel         String?             // e.g., "gpt-4", "claude-3"
+  aiPromptHash    String?             // Hash of prompt used
+  
+  // Status
+  status          ArtifactStatus      @default(DRAFT)
+  
+  // Relations to features
+  featureIds      Json                @default("[]") // Array of feature IDs
+  
+  // Versioning
+  version         Int                 @default(1)
+  previousVersionId String?
+  
+  // Metadata
+  metadata        Json?               // Additional structured data
+  tags            Json                @default("[]")
+  
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  publishedAt     DateTime?
+  archivedAt      DateTime?
+
+  // Relations
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  previousVersion TestArtifact?       @relation("ArtifactVersions", fields: [previousVersionId], references: [id], onDelete: SetNull)
+  nextVersions    TestArtifact[]      @relation("ArtifactVersions")
+  testCaseInstances TestCaseInstance[]
+  
+  @@index([projectId])
+  @@index([projectId, status])
+  @@index([createdById])
+  @@index([type])
+}
+
+enum TestArtifactType {
+  USER_STORY
+  TEST_CASE
+  TEST_CHARTER
+  ACCEPTANCE_CRITERIA
+  TEST_SUITE
+}
+
+enum ArtifactSource {
+  AI
+  MANUAL
+  IMPORTED
+  TEMPLATE
+}
+
+enum ArtifactStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+model TestTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?  @db.Text
+  category        String   // e.g., "smoke", "regression", "security"
+  content         String   @db.Text
+  tags            Json     @default("[]")
+  isPublic        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  testPlans       TestPlan[]
+  
+  @@index([category])
+  @@index([isPublic])
+}
+
+// ============================================================================
+// TEST PLANS & CYCLES
+// ============================================================================
+
+model TestPlan {
+  id                  String       @id @default(cuid())
+  projectId           String
+  name                String
+  description         String?      @db.Text
+  
+  // Scope
+  featureIds          Json         @default("[]") // Array of feature IDs
+  artifactIds         Json         @default("[]") // Array of test artifact IDs
+  
+  // Template reference
+  templateId          String?
+  
+  // Requirements
+  requiredSignOffs    Json         @default("[]") // Array of role names
+  estimatedDuration   Int?         // minutes
+  
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  
+  // Relations
+  project             Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template            TestTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  testCycles          TestCycle[]
+  
+  @@index([projectId])
+  @@index([templateId])
+}
+
+model TestCycle {
+  id                  String              @id @default(cuid())
+  projectId           String
+  planId              String?
+  
+  name                String
+  description         String?             @db.Text
+  
+  // Version information
+  version             String              // e.g., "Beta 0.1", "RC1"
+  branch              String?
+  commitSha           String?
+  commitMessage       String?             @db.Text
+  
+  // Status
+  status              TestCycleStatus     @default(DRAFT)
+  
+  // Scheduling
+  startAt             DateTime?
+  endAt               DateTime?
+  
+  // Quality gate evaluation
+  qualityGatesPassed  Boolean?
+  qualityGateResults  Json?               // Results of gate evaluation
+  
+  // AI-generated scope
+  suggestedByAI       Boolean             @default(false)
+  impactedFeatures    Json?               // Features impacted by code changes
+  
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  completedAt         DateTime?
+  
+  // Relations
+  project             Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  plan                TestPlan?           @relation(fields: [planId], references: [id], onDelete: SetNull)
+  testCaseInstances   TestCaseInstance[]
+  
+  @@index([projectId])
+  @@index([planId])
+  @@index([status])
+  @@index([commitSha])
+}
+
+enum TestCycleStatus {
+  DRAFT
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================================
+// TEST EXECUTION
+// ============================================================================
+
+model TestCaseInstance {
+  id                  String                  @id @default(cuid())
+  cycleId             String
+  artifactId          String
+  
+  // Assignment
+  assigneeId          String?
+  
+  // Execution
+  status              TestCaseStatus          @default(TODO)
+  
+  // Environment
+  environmentId       String?
+  environmentSnapshot Json?                   // Captured env config at execution time
+  
+  // Evidence & Notes
+  executionNotes      String?                 @db.Text
+  reproSteps          String?                 @db.Text
+  
+  // AI assistance during execution
+  aiSuggestions       Json?                   // AI-generated suggestions
+  
+  // Timing
+  startedAt           DateTime?
+  completedAt         DateTime?
+  duration            Int?                    // seconds
+  
+  // Metadata
+  browserInfo         String?
+  deviceInfo          String?
+  metadata            Json?
+  
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  
+  // Relations
+  cycle               TestCycle               @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  artifact            TestArtifact            @relation(fields: [artifactId], references: [id])
+  assignee            User?                   @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  environment         Environment?            @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  attachments         Attachment[]
+  signOffs            SignOff[]
+  issueLinks          IssueLink[]
+  
+  @@index([cycleId])
+  @@index([artifactId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([cycleId, status])
+}
+
+enum TestCaseStatus {
+  TODO
+  IN_PROGRESS
+  PASSED
+  FAILED
+  BLOCKED
+  SKIPPED
+  RETEST_REQUIRED
+}
+
+model SignOff {
+  id                  String              @id @default(cuid())
+  testCaseInstanceId  String
+  
+  signedById          String
+  signedAt            DateTime            @default(now())
+  
+  // Attestation
+  attestation         String              @db.Text
+  signature           String              // Digital signature/hash
+  
+  // Context
+  version             String              // Version tested
+  environment         String              // Environment name
+  commitSha           String?
+  
+  // Compliance
+  ipAddress           String?
+  userAgent           String?
+  
+  // Relations
+  testCaseInstance    TestCaseInstance    @relation(fields: [testCaseInstanceId], references: [id], onDelete: Cascade)
+  signedBy            User                @relation(fields: [signedById], references: [id])
+  
+  @@index([testCaseInstanceId])
+  @@index([signedById])
+}
+
+model Attachment {
+  id                  String              @id @default(cuid())
+  
+  // Polymorphic ownership
+  ownerType           String              // "test_case_instance", "issue_link", etc.
+  ownerId             String
+  
+  // File information
+  filename            String
+  originalFilename    String
+  mimeType            String
+  size                Int
+  url                 String
+  
+  // PII & Redaction
+  hasPII              Boolean             @default(false)
+  redactionApplied    Boolean             @default(false)
+  redactionMetadata   Json?
+  
+  uploadedAt          DateTime            @default(now())
+  
+  // Relations (using ownerType/ownerId pattern)
+  testCaseInstance    TestCaseInstance?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  @@index([ownerId, ownerType])
+  @@index([uploadedAt])
+}
+
+// ============================================================================
+// ISSUE MANAGEMENT & GITHUB SYNC
+// ============================================================================
+
+model IssueLink {
+  id                  String              @id @default(cuid())
+  projectId           String
+  testCaseInstanceId  String
+  
+  // GitHub issue information
+  githubIssueNumber   Int
+  githubIssueUrl      String
+  githubIssueTitle    String
+  githubIssueState    String              // "open", "closed"
+  
+  // Sync status
+  syncStatus          IssueSyncStatus     @default(SYNCED)
+  lastSyncedAt        DateTime            @default(now())
+  
+  // Metadata
+  labels              Json                @default("[]")
+  assignees           Json                @default("[]")
+  
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  // Relations
+  project             Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testCaseInstance    TestCaseInstance    @relation(fields: [testCaseInstanceId], references: [id], onDelete: Cascade)
+  syncEvents          IssueSyncEvent[]
+  attachments         Attachment[]
+  
+  @@unique([projectId, githubIssueNumber])
+  @@index([projectId])
+  @@index([testCaseInstanceId])
+  @@index([githubIssueState])
+}
+
+enum IssueSyncStatus {
+  SYNCED
+  PENDING
+  ERROR
+}
+
+model IssueSyncEvent {
+  id              String      @id @default(cuid())
+  issueLinkId     String
+  
+  eventType       String      // "created", "updated", "closed", "reopened"
+  eventData       Json
+  
+  createdAt       DateTime    @default(now())
+  
+  issueLink       IssueLink   @relation(fields: [issueLinkId], references: [id], onDelete: Cascade)
+  
+  @@index([issueLinkId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// TESTERS & INVITATIONS
+// ============================================================================
+
+model BetaTester {
+  id                  String      @id @default(cuid())
+  projectId           String
+  userId              String?     // Internal user
+  externalEmail       String?     // External tester email
+  
+  // NDA & Legal
+  ndaAcceptedAt       DateTime?
+  ndaVersion          String?
+  
+  // Performance tracking
+  reliabilityScore    Float       @default(0.0)
+  testsCompleted      Int         @default(0)
+  issuesFound         Int         @default(0)
+  
+  // Status
+  status              TesterStatus @default(INVITED)
+  
+  invitedAt           DateTime    @default(now())
+  joinedAt            DateTime?
+  lastActiveAt        DateTime?
+  
+  // Relations
+  project             Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user                User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invites             TesterInvite[]
+  
+  @@unique([projectId, userId])
+  @@unique([projectId, externalEmail])
+  @@index([projectId])
+  @@index([userId])
+}
+
+enum TesterStatus {
+  INVITED
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+model TesterInvite {
+  id              String      @id @default(cuid())
+  betaTesterId    String
+  
+  token           String      @unique
+  email           String
+  expiresAt       DateTime
+  
+  acceptedAt      DateTime?
+  
+  createdAt       DateTime    @default(now())
+  
+  betaTester      BetaTester  @relation(fields: [betaTesterId], references: [id], onDelete: Cascade)
+  
+  @@index([betaTesterId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// COMPLIANCE & QUALITY GATES
+// ============================================================================
+
+model QualityGate {
+  id              String      @id @default(cuid())
+  projectId       String
+  
+  name            String
+  description     String?     @db.Text
+  environment     String      // Target environment
+  
+  conditions      Json        // Array of gate conditions
+  onFail          String      @default("block") // "block" or "warn"
+  
+  isActive        Boolean     @default(true)
+  order           Int         @default(0)
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([projectId, isActive])
+}
+
+// ============================================================================
+// AUDIT & COMPLIANCE
+// ============================================================================
+
+model AuditEvent {
+  id              String      @id @default(cuid())
+  projectId       String?
+  
+  actorId         String
+  action          String      // e.g., "test.executed", "issue.created"
+  resource        String?     // Resource type
+  resourceId      String?     // Resource ID
+  
+  payload         Json        // Event-specific data
+  
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  project         Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor           User        @relation(fields: [actorId], references: [id])
+  
+  @@index([projectId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([projectId, createdAt])
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model NotificationRule {
+  id              String              @id @default(cuid())
+  projectId       String
+  
+  name            String
+  event           String              // e.g., "cycle.started", "gate.failed"
+  
+  channels        Json                // Array of {type, target}
+  
+  isActive        Boolean             @default(true)
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([event])
+}
+
+model NotificationLog {
+  id              String              @id @default(cuid())
+  
+  userId          String?
+  email           String?
+  
+  channel         String              // "email", "slack", "teams"
+  event           String
+  
+  payload         Json
+  
+  status          NotificationStatus  @default(PENDING)
+  sentAt          DateTime?
+  error           String?             @db.Text
+  
+  createdAt       DateTime            @default(now())
+  
+  user            User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRYING
+}
+
+// ============================================================================
+// AI GENERATION TRACKING
+// ============================================================================
+
+model AIGenerationLog {
+  id              String      @id @default(cuid())
+  
+  provider        String      // "openai", "anthropic", etc.
+  model           String      // "gpt-4", "claude-3-opus"
+  
+  task            String      // "generate_test_cases", "analyze_failure"
+  promptHash      String      // Hash of full prompt
+  
+  inputTokens     Int?
+  outputTokens    Int?
+  duration        Int?        // milliseconds
+  
+  status          String      // "success", "error"
+  error           String?     @db.Text
+  
+  // Audit & compliance
+  userId          String
+  projectId       String?
+  
+  createdAt       DateTime    @default(now())
+  
+  @@index([provider])
+  @@index([task])
+  @@index([createdAt])
+  @@index([userId])
 }
